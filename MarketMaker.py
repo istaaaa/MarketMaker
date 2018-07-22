@@ -21,9 +21,6 @@ import cryptowatch
 import numpy as np
 import pandas as pd
 
-
-
-
 #configの読み込み
 f = open('config/config.json', 'r', encoding="utf-8")
 config = json.load(f)
