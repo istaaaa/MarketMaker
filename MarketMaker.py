@@ -1,3 +1,5 @@
+# coding:utf-8
+
 class MarketMaker:
     pass
     def __init__(self):
@@ -15,7 +17,7 @@ import json
 import ccxt
 import bforder
 import cryptowatch
-import talib as ta
+#import talib as ta
 import numpy as np
 import pandas as pd
 
@@ -51,7 +53,7 @@ CANDLETERM = config["candleTerm"];
 AMOUNT_MIN = 0.001
 
 # スプレッド閾値
-SPREAD_ENTRY = 0.0002  # 実効スプレッド(100%=1,1%=0.01)がこの値を上回ったらエントリー
+SPREAD_ENTRY = 0.0001  # 実効スプレッド(100%=1,1%=0.01)がこの値を上回ったらエントリー
 SPREAD_CANCEL = 0.0002 # 実効スプレッド(100%=1,1%=0.01)がこの値を下回ったら指値更新を停止
 
 # 数量X(この数量よりも下に指値をおく)
@@ -66,9 +68,9 @@ INVDELTA = -20
 # 買い気配、売り気配に応じて主観的ファンダメンタル価格をずらす 
 OFFSET = 2
 
-ABSOFFSET = 0
+ABSOFFSET = 100
 
-PERTURB = 50
+PERTURB = 40
 
 #------------------------------------------------------------------------------#
 #log設定
@@ -302,14 +304,14 @@ while True:
         df_candleStick = processCandleStick(candleStick,CANDLETERM)
 
     #MACDの計算 
-    try:
-        macd, macdsignal, macdhist = ta.MACD(np.array(df_candleStick["close"][:], dtype='f8'), fastperiod=12, slowperiod=26, signalperiod=9);
-    except:
-        pass;
+    #try:
+        #macd, macdsignal, macdhist = ta.MACD(np.array(df_candleStick["close"][:], dtype='f8'), fastperiod=12, slowperiod=26, signalperiod=9);
+    #except:
+        #pass;
 
-    dmacdhist = np.gradient(macdhist)
-    Normdmacdhist = zscore(dmacdhist[~np.isnan(dmacdhist)])
-    absNormdmacdhist = np.abs(Normdmacdhist);
+    #dmacdhist = np.gradient(macdhist)
+    #Normdmacdhist = zscore(dmacdhist[~np.isnan(dmacdhist)])
+    #absNormdmacdhist = np.abs(Normdmacdhist);
 
 
 
@@ -341,6 +343,8 @@ while True:
     if pos == 'none':
 
         try:
+            # 一つ前のspread            
+            previousspread = spread;            
             # 板情報を取得、実効ask/bid(指値を入れる基準値)を決定する
             tick = get_effective_tick(size_thru=AMOUNT_THRU, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
             ask = float(tick['ask'])
@@ -352,7 +356,7 @@ while True:
             # askとbidを再計算する
             ask = float(tick['ask'])
             bid = float(tick['bid'])
-
+            
             ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
 
             if int((ask + bid)/2) > int(ticker["last"]):
@@ -365,27 +369,68 @@ while True:
 
         try:
 
-            # 実効スプレッドが閾値を超えた場合に実行する
-            if spread > SPREAD_ENTRY:
+            # 実効スプレッドが閾値を超えた場合に実行しない
+            if spread < SPREAD_ENTRY and previousspread < SPREAD_ENTRY:
 
                 # 前回のサイクルにて未約定量が存在すれば今回の注文数に加える
                 amount_int_ask = LOT + remaining_bid
                 amount_int_bid = LOT + remaining_ask
-
+                
+                tick = get_effective_tick(size_thru=AMOUNT_ASKBID, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
+                # askとbidを再計算する
+                ask = float(tick['ask'])
+                bid = float(tick['bid'])
+                
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                lastprice9 = int(ticker["last"])
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                lastprice8 = int(ticker["last"])                
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                lastprice7 = int(ticker["last"])                    
+                
+                
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                lastprice6 = int(ticker["last"])
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                lastprice5 = int(ticker["last"])                
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                lastprice4 = int(ticker["last"])                
+                
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                lastprice3 = int(ticker["last"])
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                lastprice2 = int(ticker["last"])                
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                lastprice1 = int(ticker["last"])
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                lastprice0 = int(ticker["last"])                
+                
+                lastprice = int((lastprice9 + lastprice8 + lastprice7 + lastprice6 + lastprice5 + lastprice4 + lastprice3 + lastprice2 + lastprice1 + lastprice0)/10)
+                
+                
                 # 実効Ask/Bidからdelta離れた位置に指値を入れる
                 if trend == "buy":
                     #trade_ask = limit('sell', amount_int_ask, ask - DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA + int((spread * 10000) / 100) * ABSOFFSET)
-                    trade_ask = limit('sell', amount_int_ask, (ask + bid)/2 + PERTURB + 30)
-                    trade_bid = limit('buy', amount_int_bid, (ask + bid)/2 - PERTURB + 30)
+                    #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
+                    #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
+                    trade_ask = limit('sell', amount_int_ask, lastprice + PERTURB + 20)
+                    trade_bid = limit('buy', amount_int_bid, lastprice - PERTURB + 30)                    
+                    
+                    
 
                 else:
                     #trade_ask = limit('sell', amount_int_ask, ask - DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA - int((spread * 10000) / 100) * ABSOFFSET)
-                    trade_ask = limit('sell', amount_int_ask, (ask + bid)/2 + PERTURB - 30)
-                    trade_bid = limit('buy', amount_int_bid, (ask + bid)/2 - PERTURB - 30)
+                    #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
+                    #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
+                    trade_ask = limit('sell', amount_int_ask, lastprice + PERTURB - 30)
+                    trade_bid = limit('buy', amount_int_bid, lastprice - PERTURB - 20)                    
+                    
+                logger.info('--------------------------')
+                logger.info('ask:{0}, bid:{1}, spread:{2}%'.format(int(ask * 100) / 100, int(bid * 100) / 100, int(spread * 10000) / 100))                       
 
-                logger.info('Normdmacdhist:%s ', Normdmacdhist[-1]);
+                #logger.info('Normdmacdhist:%s ', Normdmacdhist[-1]);
                 logger.info('Offset:%s ', int((spread * 10000) / 100) * OFFSET);
                 logger.info('ABSOffset:%s ', int((spread * 10000) / 100) * ABSOFFSET);
                 logger.info('trend:%s ', trend);
