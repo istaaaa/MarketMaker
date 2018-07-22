@@ -15,6 +15,7 @@ import datetime
 import time
 import json
 import ccxt
+import requests
 import bforder
 import cryptowatch
 #import talib as ta
@@ -383,7 +384,7 @@ while True:
     #absNormdmacdhist = np.abs(Normdmacdhist);
 
     #9期間RCIの計算 
-    rcirangetermNine = calc_rci(df_candleStick["close"][:],9);
+    rcirangetermNine = calc_rci(df_candleStick["close"][:],4);
     logger.info('rcirangetermNine:%s ', rcirangetermNine[-1]);
 
     # 未約定量の繰越がなければリセット
@@ -392,21 +393,20 @@ while True:
     if remaining_bid_flag == 0:
         remaining_bid = 0
 
-    try:
-        #VIX戦略
-        LOW_PRICE = 3
-        CLOSE_PRICE = 4
-        PERIOD = 60  # どの時間足で運用するか(例: 5分足 => 60秒*5 =「300」,1分足 => 60秒 =「60」を入力)
 
-        nowvix = str(int(datetime.datetime.now().timestamp()))
-        resvix = requests.get('https://api.cryptowat.ch/markets/bitflyer/btcfxjpy/ohlc?periods=' + str(PERIOD) + '&after=' + str(int(nowvix)-PERIOD*100) + '&before=' + nowvix)
-        ohlcvvix = resvix.json()
-        ohlcvRvix = list(map(list, zip(*ohlcvvix['result'][str(PERIOD)])))
-        lowvix = np.array(ohlcvRvix[LOW_PRICE])
-        closevix = np.array(ohlcvRvix[CLOSE_PRICE])
-        callback = self.vixfix(closevix, lowvix)
-    except:
-        pass;
+    #VIX戦略
+    LOW_PRICE = 3
+    CLOSE_PRICE = 4
+    PERIOD = 60  # どの時間足で運用するか(例: 5分足 => 60秒*5 =「300」,1分足 => 60秒 =「60」を入力)
+
+    nowvix = str(int(datetime.datetime.now().timestamp()))
+    resvix = requests.get('https://api.cryptowat.ch/markets/bitflyer/btcfxjpy/ohlc?periods=' + str(PERIOD) + '&after=' + str(int(nowvix)-PERIOD*100) + '&before=' + nowvix)
+    ohlcvvix = resvix.json()
+    ohlcvRvix = list(map(list, zip(*ohlcvvix['result'][str(PERIOD)])))
+    lowvix = np.array(ohlcvRvix[LOW_PRICE])
+    closevix = np.array(ohlcvRvix[CLOSE_PRICE])
+    callback = vixfix(closevix, lowvix)
+
 
     if callback == 'buy':
         #Buy
@@ -416,6 +416,7 @@ while True:
         vixFlag = 2
     else:
         #Stay
+        vixFlag = 0;
 
     #VIXflagのログ
         logger.info('vixflag:%s ', vixFlag);
@@ -506,6 +507,7 @@ while True:
                 
                 lastprice = int((lastprice9 + lastprice8 + lastprice7 + lastprice6 + lastprice5 + lastprice4 + lastprice3 + lastprice2 + lastprice1 + lastprice0)/10)
                 
+                bidaskmiddleprice = int(((ticker["bid"]) + (ticker["ask"]))/2)
                 
                 #実効Ask/Bidからdelta離れた位置に指値を入れる
                 if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0:
@@ -513,8 +515,8 @@ while True:
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
                     #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
-                    trade_ask = limit('sell', amount_int_ask, lastprice + PERTURB + 20)
-                    trade_bid = limit('buy', amount_int_bid, lastprice - PERTURB + 30)                    
+                    trade_ask = limit('sell', amount_int_ask, bidaskmiddleprice + PERTURB + 20)
+                    trade_bid = limit('buy', amount_int_bid, bid)                    
                     
                     
 
@@ -523,8 +525,8 @@ while True:
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
                     #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
-                    trade_ask = limit('sell', amount_int_ask, lastprice + PERTURB - 30)
-                    trade_bid = limit('buy', amount_int_bid, lastprice - PERTURB - 20)                    
+                    trade_ask = limit('sell', amount_int_ask, ask)
+                    trade_bid = limit('buy', amount_int_bid, bidaskmiddleprice - PERTURB - 20)                    
 
                 
                     
