@@ -69,6 +69,8 @@ ABSOFFSET = 100
 
 PERTURB = 40
 
+spread = 0
+
 #------------------------------------------------------------------------------#
 #log設定
 import logging
@@ -244,6 +246,29 @@ def zscore(x, axis = None):
     zscore = (x-xmean)/xstd
     return zscore
 
+#rciのdの計算
+def dofrci(itv,src):
+    from scipy.stats import rankdata
+    sum = 0.0
+    for i in range(itv, 0, -1):
+        date_rank = itv - i + 1
+        price_rank = (itv - rankdata(src)[i-1] + 1)
+        sum = sum + pow( (date_rank - price_rank) ,2)
+        #pprint("hiduke = {},  price={},  juni={},  goukei={}".format(date_rank, src[i-1], price_rank, sum) )
+    
+    return sum
+   
+#rciの計算
+def calc_rci(src, term):
+    
+    listnull = [None]
+    itv = term
+    rcinull = listnull * itv
+    rci_tmp = [   (1.0 - 6.0 * dofrci(itv,src[i-itv:i]) / (itv * itv * itv - itv)) * 100.0   for i in range(itv,len(src))]
+    rci = rcinull + rci_tmp
+    
+    return rci
+
 
 #------------------------------------------------------------------------------#
 
@@ -310,7 +335,9 @@ while True:
     #Normdmacdhist = zscore(dmacdhist[~np.isnan(dmacdhist)])
     #absNormdmacdhist = np.abs(Normdmacdhist);
 
-
+    #9期間RCIの計算 
+    rcirangetermNine = calc_rci(df_candleStick["close"][:],9);
+    logger.info('rcirangetermNine:%s ', rcirangetermNine[-1]);
 
     # 未約定量の繰越がなければリセット
     if remaining_ask_flag == 0:
@@ -367,7 +394,7 @@ while True:
         try:
 
             # 実効スプレッドが閾値を超えた場合に実行しない
-            if spread < SPREAD_ENTRY and previousspread < SPREAD_ENTRY:
+            if spread < SPREAD_ENTRY:
 
                 # 前回のサイクルにて未約定量が存在すれば今回の注文数に加える
                 amount_int_ask = LOT + remaining_bid
@@ -405,8 +432,8 @@ while True:
                 lastprice = int((lastprice9 + lastprice8 + lastprice7 + lastprice6 + lastprice5 + lastprice4 + lastprice3 + lastprice2 + lastprice1 + lastprice0)/10)
                 
                 
-                # 実効Ask/Bidからdelta離れた位置に指値を入れる
-                if trend == "buy":
+                #実効Ask/Bidからdelta離れた位置に指値を入れる
+                if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy":
                     #trade_ask = limit('sell', amount_int_ask, ask - DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
@@ -416,13 +443,15 @@ while True:
                     
                     
 
-                else:
+                elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell":
                     #trade_ask = limit('sell', amount_int_ask, ask - DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
                     #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
                     trade_ask = limit('sell', amount_int_ask, lastprice + PERTURB - 30)
                     trade_bid = limit('buy', amount_int_bid, lastprice - PERTURB - 20)                    
+
+                
                     
                 logger.info('--------------------------')
                 logger.info('ask:{0}, bid:{1}, spread:{2}%'.format(int(ask * 100) / 100, int(bid * 100) / 100, int(spread * 10000) / 100))                       
