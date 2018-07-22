@@ -71,6 +71,9 @@ PERTURB = 40
 
 spread = 0
 
+vixFlag = 0
+
+
 #------------------------------------------------------------------------------#
 #log設定
 import logging
@@ -269,6 +272,48 @@ def calc_rci(src, term):
     
     return rci
 
+def vixfix(close, low):
+    prd = 22
+    bbl = 20
+    mult = 2.0
+    lb = 50
+    ph = 0.85
+    pl = 1.01
+
+    wvf = (pd.Series(close).rolling(prd, 1).max() - low) / pd.Series(close).rolling(prd, 1).max() * 100
+
+    sDev = mult * pd.Series(wvf).rolling(bbl, 1).std()
+    midLine = pd.Series(wvf).rolling(bbl, 1).mean()
+
+    lowerBand = midLine - sDev
+    upperBand = midLine + sDev
+    rangeHigh = pd.Series(wvf).rolling(lb, 1).max() * ph
+    rangeLow = pd.Series(wvf).rolling(lb, 1).min() * pl
+
+    #緑が点灯しているときはエントリーしない
+    if wvf[len(wvf)-1] > rangeHigh[len(wvf)-1] or wvf[len(wvf)-1] > upperBand[len(wvf)-1]:
+        return 'buy'
+        #print("VIX: 緑")
+    elif wvf[len(wvf)-2] > rangeHigh[len(wvf)-2] or wvf[len(wvf)-2] > upperBand[len(wvf)-2]:
+        if wvf[len(wvf)-1] < rangeHigh[len(wvf)-1] or wvf[len(wvf)-1] < upperBand[len(wvf)-1]:
+            #print('VIX: 緑からグレー')
+            1+1
+            #return 'buy'
+    #赤が点灯しているときはエントリーしない
+    elif wvf[len(wvf)-1] < rangeLow[len(wvf)-1] or wvf[len(wvf)-1] < lowerBand[len(wvf)-1]:
+        return 'sell'
+        #print("VIX: 赤")
+    elif wvf[len(wvf)-2] < rangeLow[len(wvf)-2] or wvf[len(wvf)-2] < lowerBand[len(wvf)-2]:
+        if wvf[len(wvf)-1] > rangeLow[len(wvf)-1] or wvf[len(wvf)-1] > lowerBand[len(wvf)-1]:
+            #print('VIX: 赤からグレー')
+            1+1
+            #return 'sell'
+    else:
+        pass
+        #print("VIX: グレー")
+
+    return 'stay'
+
 
 #------------------------------------------------------------------------------#
 
@@ -344,6 +389,34 @@ while True:
         remaining_ask = 0
     if remaining_bid_flag == 0:
         remaining_bid = 0
+
+    try:
+        #VIX戦略
+        LOW_PRICE = 3
+        CLOSE_PRICE = 4
+        PERIOD = 60  # どの時間足で運用するか(例: 5分足 => 60秒*5 =「300」,1分足 => 60秒 =「60」を入力)
+
+        nowvix = str(int(datetime.datetime.now().timestamp()))
+        resvix = requests.get('https://api.cryptowat.ch/markets/bitflyer/btcfxjpy/ohlc?periods=' + str(PERIOD) + '&after=' + str(int(nowvix)-PERIOD*100) + '&before=' + nowvix)
+        ohlcvvix = resvix.json()
+        ohlcvRvix = list(map(list, zip(*ohlcvvix['result'][str(PERIOD)])))
+        lowvix = np.array(ohlcvRvix[LOW_PRICE])
+        closevix = np.array(ohlcvRvix[CLOSE_PRICE])
+        callback = self.vixfix(closevix, lowvix)
+    except:
+        pass;
+
+    if callback == 'buy':
+        #Buy
+        vixFlag = 1
+    elif callback == 'sell':
+        #Sell
+        vixFlag = 2
+    else:
+        #Stay
+
+    #VIXflagのログ
+        logger.info('vixflag:%s ', vixFlag);
 
     # フラグリセット
     remaining_ask_flag = 0
@@ -433,7 +506,7 @@ while True:
                 
                 
                 #実効Ask/Bidからdelta離れた位置に指値を入れる
-                if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy":
+                if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0:
                     #trade_ask = limit('sell', amount_int_ask, ask - DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
@@ -443,7 +516,7 @@ while True:
                     
                     
 
-                elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell":
+                elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and vixFlag == 0:
                     #trade_ask = limit('sell', amount_int_ask, ask - DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
