@@ -52,7 +52,7 @@ AMOUNT_MIN = 0.001
 
 # スプレッド閾値
 SPREAD_ENTRY = 0.0001  # 実効スプレッド(100%=1,1%=0.01)がこの値を上回ったらエントリー
-SPREAD_CANCEL = 0.0002 # 実効スプレッド(100%=1,1%=0.01)がこの値を下回ったら指値更新を停止
+SPREAD_CANCEL = 0.0001 # 実効スプレッド(100%=1,1%=0.01)がこの値を下回ったら指値更新を停止
 
 # 数量X(この数量よりも下に指値をおく)
 AMOUNT_THRU = 1
@@ -508,24 +508,29 @@ while True:
                 lastprice = int((lastprice9 + lastprice8 + lastprice7 + lastprice6 + lastprice5 + lastprice4 + lastprice3 + lastprice2 + lastprice1 + lastprice0)/10)
                 
                 bidaskmiddleprice = int(((ticker["bid"]) + (ticker["ask"]))/2)
+
+                lastminusbid = int(bid) - int(ticker["last"]);
+                askminuslast = int(ticker["last"]) - int(ask);
+                logger.info('Last - Bid:%s ', lastminusbid);
+                logger.info('Last - Bid:%s ', lastminusbid);
+
                 
                 #実効Ask/Bidからdelta離れた位置に指値を入れる
-                if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0:
+                if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and lastminusbid < 100:
                     #trade_ask = limit('sell', amount_int_ask, ask - DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
                     #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
                     trade_ask = limit('sell', amount_int_ask, bidaskmiddleprice + PERTURB + 20)
-                    trade_bid = limit('buy', amount_int_bid, bid)                    
+                    trade_bid = limit('buy', amount_int_bid, ask)                    
                     
                     
-
-                elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and vixFlag == 0:
+                elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and vixFlag == 0 and askminuslast < 100:
                     #trade_ask = limit('sell', amount_int_ask, ask - DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
                     #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
-                    trade_ask = limit('sell', amount_int_ask, ask)
+                    trade_ask = limit('sell', amount_int_ask, bid)
                     trade_bid = limit('buy', amount_int_bid, bidaskmiddleprice - PERTURB - 20)                    
 
                 
