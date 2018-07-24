@@ -130,13 +130,14 @@ def get_effective_tick(size_thru, rate_ask, size_ask, rate_bid, size_bid):
     i = 0
     s = 0
     while s <= size_thru:
-            s += value['bids'][i][1]
+        s += value['bids'][i][1]
         i += 1
 
     j = 0
     t = 0
     while t <= size_thru:
-            t += value['asks'][j][1]
+        if value['asks'][j][0] == rate_ask:
+        t += value['asks'][j][1]
         j += 1
 
     return {'bid': value['bids'][i-1][0], 'ask': value['asks'][j-1][0]}
