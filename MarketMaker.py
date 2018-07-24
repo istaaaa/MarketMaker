@@ -52,7 +52,7 @@ AMOUNT_MIN = 0.001
 
 # スプレッド閾値
 SPREAD_ENTRY = 0.0001  # 実効スプレッド(100%=1,1%=0.01)がこの値を上回ったらエントリー
-SPREAD_CANCEL = 0.0001 # 実効スプレッド(100%=1,1%=0.01)がこの値を下回ったら指値更新を停止
+SPREAD_CANCEL = 0.0000 # 実効スプレッド(100%=1,1%=0.01)がこの値を下回ったら指値更新を停止
 
 # 数量X(この数量よりも下に指値をおく)
 AMOUNT_THRU = 1
@@ -440,7 +440,7 @@ while True:
             trade_bid['status'] = 'open';
 
     # 自分の指値が存在しないとき実行する
-    if pos == 'none':
+    if pos == 'none' or pos == 'entry':
 
         try:
             # 一つ前のspread            
@@ -470,7 +470,7 @@ while True:
         try:
 
             # 実効スプレッドが閾値を超えた場合に実行しない
-            if spread < SPREAD_ENTRY:
+            if spread > SPREAD_ENTRY:
 
                 # 前回のサイクルにて未約定量が存在すれば今回の注文数に加える
                 amount_int_ask = LOT + remaining_bid
@@ -516,22 +516,24 @@ while True:
 
                 
                 #実効Ask/Bidからdelta離れた位置に指値を入れる
-                if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and lastminusbid < 100:
+                if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and size < 0.3:
                     #trade_ask = limit('sell', amount_int_ask, ask - DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
                     #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
                     #trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
                     trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
+                    time.sleep(5)
                     
                     
-                elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and vixFlag == 0 and askminuslast < 100:
+                elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and vixFlag == 0 and size < 0.3:
                     #trade_ask = limit('sell', amount_int_ask, ask - DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
                     #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
                     trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
                     #trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
+                    time.sleep(5)
 
                 
                     
@@ -696,17 +698,24 @@ while True:
                 ask = float(tick['ask'])
                 bid = float(tick['bid'])
 
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+
+                if int((ask + bid)/2) > int(ticker["last"]):
+                    trend = "buy"
+                else:
+                    trend = "sell"
+
                 #positionを取得（指値だけだとバグるので修正取得）
                 side , size = order.getmypos();
 
-                if side == "SELL" and pos > 0.1 and (rcirangetermNine[-1] - rcirangetermNine[-2]) > 0 and trade_bid['status'] == "closed":
+                if side == "SELL" and trend == 'buy' and trade_bid['status'] == "closed":
                         amount_int_bid = LOT + remaining_ask
-                        trade_bid = limit('buy', amount_int_bid, bid + DELTA + int((spread * 10000) / 100) * OFFSET)
+                        trade_bid = limit('buy', size, bid + DELTA + int((spread * 10000) / 100) * OFFSET)
                         trade_bid['status'] = 'open'
-                if side == "BUY" and pos > 0.1 and (rcirangetermNine[-1] - rcirangetermNine[-2]) < 0 and trade_ask['status'] == "closed":
+                if side == "BUY" and trend == 'sell' and trade_ask['status'] == "closed":
                         amount_int_ask = LOT + remaining_bid
-                        trade_ask = limit('sell', amount_int_ask, ask - DELTA - int((spread * 10000) / 100) * OFFSET)
-                        trade_bid['status'] = 'open'
+                        trade_ask = limit('sell', size, ask - DELTA - int((spread * 10000) / 100) * OFFSET)
+                        trade_ask['status'] = 'open'
         except:
             pass;
 
