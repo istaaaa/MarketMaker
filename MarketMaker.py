@@ -512,7 +512,7 @@ while True:
                 lastminusbid = int(bid) - int(ticker["last"]);
                 askminuslast = int(ticker["last"]) - int(ask);
                 logger.info('Last - Bid:%s ', lastminusbid);
-                logger.info('Last - Bid:%s ', lastminusbid);
+                logger.info('Ask - Last:%s ', askminuslast);
 
                 
                 #実効Ask/Bidからdelta離れた位置に指値を入れる
@@ -521,8 +521,8 @@ while True:
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
                     #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
-                    trade_ask = limit('sell', amount_int_ask, bidaskmiddleprice + PERTURB + 20)
-                    trade_bid = limit('buy', amount_int_bid, ask)                    
+                    #trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
+                    trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
                     
                     
                 elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and vixFlag == 0 and askminuslast < 100:
@@ -530,8 +530,8 @@ while True:
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
                     #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
-                    trade_ask = limit('sell', amount_int_ask, bid)
-                    trade_bid = limit('buy', amount_int_bid, bidaskmiddleprice - PERTURB - 20)                    
+                    trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
+                    #trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
 
                 
                     
@@ -651,14 +651,14 @@ while True:
 
                 # Ask指値が最良位置に存在しないとき、指値を更新する
                 if trade_ask['status'] == 'open':
-                    if trade_ask['price'] != ask - DELTA:
+                    if trade_ask['price'] != ask:
 
                         # 指値を一旦キャンセル
                         order.cancelAllOrder();
 
                         # 注文数が最小注文数より大きいとき、指値を更新する
                         if trade_ask['remaining'] >= AMOUNT_MIN:
-                            trade_ask = limit('sell', trade_ask['remaining'], ask - DELTA)
+                            trade_ask = limit('sell', trade_ask['remaining'], ask)
                             trade_ask['status'] = 'open'
                         # 注文数が最小注文数より小さく0でないとき、未約定量を記録してCLOSEDとする
                         elif AMOUNT_MIN > trade_ask['remaining'] > 0:
@@ -672,14 +672,14 @@ while True:
 
                 # Bid指値が最良位置に存在しないとき、指値を更新する
                 if trade_bid['status'] == 'open':
-                    if trade_bid['price'] != bid + DELTA:
+                    if trade_bid['price'] != bid:
 
                         # 指値を一旦キャンセル
                         order.cancelAllOrder();
 
                         # 注文数が最小注文数より大きいとき、指値を更新する
                         if trade_bid['remaining'] >= AMOUNT_MIN:
-                            trade_bid = limit('buy', trade_bid['remaining'], bid + DELTA)
+                            trade_bid = limit('buy', trade_bid['remaining'], bid)
                             trade_bid['status'] = 'open'
                         # 注文数が最小注文数より小さく0でないとき、未約定量を記録してCLOSEDとする
                         elif AMOUNT_MIN > trade_bid['remaining'] > 0:
@@ -691,17 +691,19 @@ while True:
                             trade_bid['status'] = 'closed'
 
                 #おそうじする 
-
                 tick = get_effective_tick(size_thru=AMOUNT_ASKBID, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
                 # askとbidを再計算する
                 ask = float(tick['ask'])
                 bid = float(tick['bid'])
 
-                if side == "SELL" and trade_bid['status'] == "closed":
+                #positionを取得（指値だけだとバグるので修正取得）
+                side , size = order.getmypos();
+
+                if side == "SELL" and pos > 0.1 and (rcirangetermNine[-1] - rcirangetermNine[-2]) > 0 and trade_bid['status'] == "closed":
                         amount_int_bid = LOT + remaining_ask
                         trade_bid = limit('buy', amount_int_bid, bid + DELTA + int((spread * 10000) / 100) * OFFSET)
                         trade_bid['status'] = 'open'
-                if side == "BUY" and trade_ask['status'] == "closed":
+                if side == "BUY" and pos > 0.1 and (rcirangetermNine[-1] - rcirangetermNine[-2]) < 0 and trade_ask['status'] == "closed":
                         amount_int_ask = LOT + remaining_bid
                         trade_ask = limit('sell', amount_int_ask, ask - DELTA - int((spread * 10000) / 100) * OFFSET)
                         trade_bid['status'] = 'open'
