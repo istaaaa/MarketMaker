@@ -130,22 +130,15 @@ def get_effective_tick(size_thru, rate_ask, size_ask, rate_bid, size_bid):
     i = 0
     s = 0
     while s <= size_thru:
-        if value['bids'][i][0] == rate_bid:
-            s += value['bids'][i][1] - size_bid
-        else:
             s += value['bids'][i][1]
         i += 1
 
     j = 0
     t = 0
     while t <= size_thru:
-        if value['asks'][j][0] == rate_ask:
-            t += value['asks'][j][1] - size_ask
-        else:
             t += value['asks'][j][1]
         j += 1
 
-    time.sleep(0.5)
     return {'bid': value['bids'][i-1][0], 'ask': value['asks'][j-1][0]}
 
 # 成行注文する関数
