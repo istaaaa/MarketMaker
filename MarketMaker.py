@@ -76,6 +76,8 @@ vixFlag = 0
 
 callback = 'stay';
 
+sfdflag = False;
+
 
 #------------------------------------------------------------------------------#
 #log設定
@@ -458,6 +460,20 @@ while True:
             else:
                 trend = "sell"
 
+            #SFDの計算
+            tickerbtcfx = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+            tickerbtc = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+
+            spot = round(tickerbtc["last"])
+            fx =   round(tickerbtcfx["last"])
+            diff = round((fx-spot)/spot * 100,3);
+
+            if(diff >= 5.05 and diff <= 4.95):
+               sfdflag = True;
+
+
+
+
         except:
             pass;
 
@@ -510,7 +526,7 @@ while True:
 
                 
                 #実効Ask/Bidからdelta離れた位置に指値を入れる
-                if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and size < 0.3:
+                if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and size < 0.3 and sfdflag == False:
                     #trade_ask = limit('sell', amount_int_ask, ask - DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
@@ -520,7 +536,7 @@ while True:
                     time.sleep(5)
                     
                     
-                elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and vixFlag == 0 and size < 0.3:
+                elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and vixFlag == 0 and size < 0.3 and sfdflag == False:
                     #trade_ask = limit('sell', amount_int_ask, ask - DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
@@ -529,8 +545,31 @@ while True:
                     #trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
                     time.sleep(5)
 
-                
+                #SFD時の計算
+                elif sfdflag == True and size < 0.3:
+
+                    #tickerを再計算
+                    tickerbtcfx = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                    tickerbtc = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+
+                    spot = tickerbtc["last"]
+                    fx =   tickerbtcfx["last"]
+                    diff = round((fx-spot)/spot * 100,2);
+
+                    print("SPOT: " + str(spot) + "/FX: " + str(fx) + "/DIFF: " + str(diff)+ '%')
                     
+                    trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
+                    try:
+                        if diff >= 5.01:
+                            trade_bid = limit('sell', amount_int_bid, (tickerbtcfx["last"]))
+                        elif diff <= 4.99:
+                            trade_bid = limit('buy', amount_int_bid, (tickerbtcfx["last"]))
+                        time.sleep(10)
+                        # 注文をキャンセル
+                        order.cancelAllOrder();
+                    except:
+                        pass
+
                 logger.info('--------------------------')
                 logger.info('ask:{0}, bid:{1}, spread:{2}%'.format(int(ask * 100) / 100, int(bid * 100) / 100, int(spread * 10000) / 100))                       
 
