@@ -422,7 +422,11 @@ while True:
         try:
 
             # 実効スプレッドが閾値を超えた場合に実行しない
-            if spread > SPREAD_ENTRY:
+            if spread >= SPREAD_ENTRY:
+
+                # 前回のサイクルにて未約定量が存在すれば今回の注文数に加える
+                amount_int_ask = LOT + remaining_bid
+                amount_int_bid = LOT + remaining_ask
 
                 #SFD時の計算
                 if sfdflag == True and size < 0.3:
