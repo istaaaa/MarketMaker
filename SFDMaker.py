@@ -402,9 +402,10 @@ while True:
 
     if size >= 0.3 and side =="SELL":
         canSellflag = False;
+        canBuyflag = True;
     elif size >= 0.3 and side =="BUY":
+        canSellflag = True;
         canBuyflag = False;
-
     # 自分の指値が存在しないとき実行する
     if pos == 'none' or pos == 'entry':
 
@@ -446,9 +447,9 @@ while True:
                     diff = round((fx-spot)/spot * 100,6);
                     
                     try:
-                        if diff >= 5.00001 and canSellflag:
+                        if diff >= 5.00001 and canSellflag == True:
                             trade_ask = limit('sell', amount_int_bid, (tickerbtcfx["last"]))
-                        elif diff <= 4.99999 and canBuyflag:
+                        elif diff <= 4.99999 and canBuyflag == True:
                             trade_bid = limit('buy', amount_int_bid, (tickerbtcfx["last"]))
                         logger.info("--------------")
                         logger.info("SPOT: " + str(spot) + "/FX: " + str(fx) + "/DIFF: " + str(diff)+ '%')
