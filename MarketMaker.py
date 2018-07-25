@@ -51,7 +51,7 @@ CANDLETERM = config["candleTerm"];
 AMOUNT_MIN = 0.001
 
 # スプレッド閾値
-SPREAD_ENTRY = 0.0001  # 実効スプレッド(100%=1,1%=0.01)がこの値を上回ったらエントリー
+SPREAD_ENTRY = 0.0000  # 実効スプレッド(100%=1,1%=0.01)がこの値を上回ったらエントリー
 SPREAD_CANCEL = 0.0000 # 実効スプレッド(100%=1,1%=0.01)がこの値を下回ったら指値更新を停止
 
 # 数量X(この数量よりも下に指値をおく)
@@ -132,16 +132,22 @@ def get_effective_tick(size_thru, rate_ask, size_ask, rate_bid, size_bid):
     i = 0
     s = 0
     while s <= size_thru:
-        s += value['bids'][i][1]
+        if value['bids'][i][0] == rate_bid:
+            s += value['bids'][i][1] - size_bid
+        else:
+            s += value['bids'][i][1]
         i += 1
 
     j = 0
     t = 0
     while t <= size_thru:
         if value['asks'][j][0] == rate_ask:
-        t += value['asks'][j][1]
+            t += value['asks'][j][1] - size_ask
+        else:
+            t += value['asks'][j][1]
         j += 1
 
+    time.sleep(0.5)
     return {'bid': value['bids'][i-1][0], 'ask': value['asks'][j-1][0]}
 
 # 成行注文する関数
@@ -462,17 +468,15 @@ while True:
 
             #SFDの計算
             tickerbtcfx = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
-            tickerbtc = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+            tickerbtc = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "BTC_JPY" })
 
             spot = round(tickerbtc["last"])
             fx =   round(tickerbtcfx["last"])
-            diff = round((fx-spot)/spot * 100,3);
+            diff = round((fx-spot)/spot * 100,6);
 
-            if(diff >= 5.05 and diff <= 4.95):
+            if(diff <= 5.05 and diff >= 4.95):
                sfdflag = True;
-
-
-
+               logger.info("SPOT: " + str(spot) + "/FX: " + str(fx) + "/DIFF: " + str(diff)+ '%')
 
         except:
             pass;
@@ -550,23 +554,24 @@ while True:
 
                     #tickerを再計算
                     tickerbtcfx = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
-                    tickerbtc = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                    tickerbtc = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "BTC_JPY" })
 
                     spot = tickerbtc["last"]
                     fx =   tickerbtcfx["last"]
-                    diff = round((fx-spot)/spot * 100,2);
-
-                    print("SPOT: " + str(spot) + "/FX: " + str(fx) + "/DIFF: " + str(diff)+ '%')
+                    diff = round((fx-spot)/spot * 100,6);
                     
-                    trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
                     try:
                         if diff >= 5.01:
                             trade_bid = limit('sell', amount_int_bid, (tickerbtcfx["last"]))
                         elif diff <= 4.99:
                             trade_bid = limit('buy', amount_int_bid, (tickerbtcfx["last"]))
+                        logger.info("--------------")
+                        logger.info("SPOT: " + str(spot) + "/FX: " + str(fx) + "/DIFF: " + str(diff)+ '%')
+                        logger.info("--------------")
                         time.sleep(10)
                         # 注文をキャンセル
                         order.cancelAllOrder();
+
                     except:
                         pass
 
@@ -593,7 +598,7 @@ while True:
             pass;
 
     # 自分の指値が存在するとき実行する
-    if pos == 'entry':
+    if pos == 'entry' and False:
 
         try:
                 orders = bitflyer.fetch_orders(
