@@ -448,9 +448,9 @@ while True:
                     
                     try:
                         if diff >= 5.00001 and canSellflag == True:
-                            trade_ask = limit('sell', amount_int_bid, (tickerbtcfx["last"]))
+                            trade_ask = limit('sell', amount_int_bid, (tickerbtcfx["ask"]))
                         elif diff <= 4.99999 and canBuyflag == True:
-                            trade_bid = limit('buy', amount_int_bid, (tickerbtcfx["last"]))
+                            trade_bid = limit('buy', amount_int_bid, (tickerbtcfx["bid"]))
                         logger.info("--------------")
                         logger.info("SPOT: " + str(spot) + "/FX: " + str(fx) + "/DIFF: " + str(diff)+ '%')
                         logger.info("--------------")
@@ -651,7 +651,4 @@ while True:
                 logger.info('completed.')
         except:
             pass;
-
-    time.sleep(5)
-
 
