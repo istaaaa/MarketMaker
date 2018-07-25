@@ -78,6 +78,10 @@ callback = 'stay';
 
 sfdflag = False;
 
+canSellflag = True;
+
+canBuyflag = True;
+
 
 #------------------------------------------------------------------------------#
 #log設定
@@ -223,7 +227,6 @@ def get_status(id):
     time.sleep(0.1)
     return {'id': value['child_order_acceptance_id'], 'status': status, 'filled': value['executed_size'], 'remaining': remaining, 'amount': value['size'], 'price': value['price']}
 
-
 def fromListToDF(candleStick):
     """
     Listのローソク足をpandasデータフレームへ．
@@ -319,7 +322,6 @@ def vixfix(close, low):
 
     return 'stay'
 
-
 #------------------------------------------------------------------------------#
 
 # 未約定量が存在することを示すフラグ
@@ -352,7 +354,6 @@ trade_bid = {"status":'closed'}
 
 # メインループ
 while True:
-
 
     try:
         if "H" in CANDLETERM:
@@ -399,6 +400,11 @@ while True:
         if side == "BUY":
             trade_bid['status'] = 'open';
 
+    if size >= 0.3 and side =="SELL":
+        canSellflag = False;
+    elif size >= 0.3 and side =="BUY":
+        canBuyflag = False;
+
     # 自分の指値が存在しないとき実行する
     if pos == 'none' or pos == 'entry':
 
@@ -429,7 +435,7 @@ while True:
                 amount_int_bid = LOT + remaining_ask
 
                 #SFD時の計算
-                if sfdflag == True and size < 0.3:
+                if sfdflag == True:
 
                     #tickerを再計算
                     tickerbtcfx = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
@@ -440,9 +446,9 @@ while True:
                     diff = round((fx-spot)/spot * 100,6);
                     
                     try:
-                        if diff >= 5.00001:
+                        if diff >= 5.00001 and canSellflag:
                             trade_ask = limit('sell', amount_int_bid, (tickerbtcfx["last"]))
-                        elif diff <= 4.99999:
+                        elif diff <= 4.99999 and canBuyflag:
                             trade_bid = limit('buy', amount_int_bid, (tickerbtcfx["last"]))
                         logger.info("--------------")
                         logger.info("SPOT: " + str(spot) + "/FX: " + str(fx) + "/DIFF: " + str(diff)+ '%')
