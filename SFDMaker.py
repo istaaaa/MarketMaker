@@ -385,6 +385,7 @@ while True:
     # フラグリセット
     remaining_ask_flag = 0
     remaining_bid_flag = 0
+    sfdflag = False;
 
     #positionを取得（指値だけだとバグるので修正取得）
     side , size = order.getmypos();
@@ -449,17 +450,40 @@ while True:
                     try:
                         if diff >= 5.00001 and canSellflag == True:
                             trade_ask = limit('sell', amount_int_bid, (tickerbtcfx["ask"]))
-                        elif diff <= 4.99999 and canBuyflag == True:
+                        elif diff <= 4.99 and canBuyflag == True:
                             trade_bid = limit('buy', amount_int_bid, (tickerbtcfx["bid"]))
                         logger.info("--------------")
                         logger.info("SPOT: " + str(spot) + "/FX: " + str(fx) + "/DIFF: " + str(diff)+ '%')
                         logger.info("--------------")
-                        time.sleep(3)
+                        time.sleep(0.2)
                         # 注文をキャンセル
                         order.cancelAllOrder();
 
                     except:
                         pass
+                    
+                    #tickerを再計算
+                    tickerbtcfx = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                    tickerbtc = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "BTC_JPY" })
+
+                    spot = tickerbtc["last"]
+                    fx =   tickerbtcfx["last"]
+                    diff = round((fx-spot)/spot * 100,6);
+                    
+                    try:
+                        if diff >= 5.0001 and canSellflag == True and side == "BUY":
+                            trade_ask = limit('sell', size, (tickerbtcfx["ask"]))
+                        elif diff <= 4.98 and canBuyflag == True and side == "SELL":
+                            trade_bid = limit('buy', size, (tickerbtcfx["bid"]))
+                        logger.info("--------------")
+                        logger.info("SPOT: " + str(spot) + "/FX: " + str(fx) + "/DIFF: " + str(diff)+ '%')
+                        logger.info("--------------")
+                        time.sleep(0.2)
+                        # 注文をキャンセル
+                        order.cancelAllOrder();
+
+                    except:
+                        pass                    
 
                 logger.info('--------------------------')
                 logger.info('ask:{0}, bid:{1}, spread:{2}%'.format(int(ask * 100) / 100, int(bid * 100) / 100, int(spread * 10000) / 100))                       

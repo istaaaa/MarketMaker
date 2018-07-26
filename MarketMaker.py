@@ -457,7 +457,7 @@ while True:
             ask = float(tick['ask'])
             bid = float(tick['bid'])
             
-            ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+            ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
 
             if int((ask + bid)/2) > int(ticker["last"]):
                 trend = "buy"
@@ -481,28 +481,28 @@ while True:
                 ask = float(tick['ask'])
                 bid = float(tick['bid'])
                 
-                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
                 lastprice9 = int(ticker["last"])
-                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
                 lastprice8 = int(ticker["last"])                
-                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
                 lastprice7 = int(ticker["last"])                    
                 
                 
-                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
                 lastprice6 = int(ticker["last"])
-                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
                 lastprice5 = int(ticker["last"])                
-                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
                 lastprice4 = int(ticker["last"])                
                 
-                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
                 lastprice3 = int(ticker["last"])
-                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
                 lastprice2 = int(ticker["last"])                
-                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
                 lastprice1 = int(ticker["last"])
-                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
                 lastprice0 = int(ticker["last"])                
                 
                 lastprice = int((lastprice9 + lastprice8 + lastprice7 + lastprice6 + lastprice5 + lastprice4 + lastprice3 + lastprice2 + lastprice1 + lastprice0)/10)
@@ -698,7 +698,7 @@ while True:
                 ask = float(tick['ask'])
                 bid = float(tick['bid'])
 
-                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRPRODUCT })
 
                 if int((ask + bid)/2) > int(ticker["last"]):
                     trend = "buy"
