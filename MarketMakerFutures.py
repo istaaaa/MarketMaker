@@ -37,7 +37,7 @@ bitflyer = ccxt.bitflyer({
 
 # 取引する通貨、シンボルを設定
 COIN = 'BTC'
-PAIR = 'BTCJPY28SEP2018'
+PAIR = 'BTC/JPY'
 
 # プロダクトコードの指定 
 PRODUCT = config["product_code"]
@@ -53,6 +53,7 @@ AMOUNT_MIN = 0.001
 # スプレッド閾値
 SPREAD_ENTRY = 0.0003  # 実効スプレッド(100%=1,1%=0.01)がこの値を上回ったらエントリー
 SPREAD_CANCEL = 0.0001 # 実効スプレッド(100%=1,1%=0.01)がこの値を下回ったら指値更新を停止
+SPREAD_CLEAN = 0.0005
 
 # 数量X(この数量よりも下に指値をおく)
 AMOUNT_THRU = 1
@@ -75,12 +76,6 @@ spread = 0
 vixFlag = 0
 
 callback = 'stay';
-
-sfdflag = False;
-
-canSellflag = True;
-
-canBuyflag = True;
 
 
 #------------------------------------------------------------------------------#
@@ -227,6 +222,7 @@ def get_status(id):
     time.sleep(0.1)
     return {'id': value['child_order_acceptance_id'], 'status': status, 'filled': value['executed_size'], 'remaining': remaining, 'amount': value['size'], 'price': value['price']}
 
+
 def fromListToDF(candleStick):
     """
     Listのローソク足をpandasデータフレームへ．
@@ -322,6 +318,7 @@ def vixfix(close, low):
 
     return 'stay'
 
+
 #------------------------------------------------------------------------------#
 
 # 未約定量が存在することを示すフラグ
@@ -355,6 +352,7 @@ trade_bid = {"status":'closed'}
 # メインループ
 while True:
 
+
     try:
         if "H" in CANDLETERM:
             candleStick = cryptowatch.getCandlestick(480, "3600")
@@ -376,16 +374,57 @@ while True:
     else:
         df_candleStick = processCandleStick(candleStick,CANDLETERM)
 
+    #MACDの計算 
+    #try:
+        #macd, macdsignal, macdhist = ta.MACD(np.array(df_candleStick["close"][:], dtype='f8'), fastperiod=12, slowperiod=26, signalperiod=9);
+    #except:
+        #pass;
+
+    #dmacdhist = np.gradient(macdhist)
+    #Normdmacdhist = zscore(dmacdhist[~np.isnan(dmacdhist)])
+    #absNormdmacdhist = np.abs(Normdmacdhist);
+
+    #9期間RCIの計算 
+    rcirangetermNine = calc_rci(df_candleStick["close"][:],4);
+    logger.info('rcirangetermNine:%s ', rcirangetermNine[-1]);
+
     # 未約定量の繰越がなければリセット
     if remaining_ask_flag == 0:
         remaining_ask = 0
     if remaining_bid_flag == 0:
         remaining_bid = 0
 
+
+    #VIX戦略
+    LOW_PRICE = 3
+    CLOSE_PRICE = 4
+    PERIOD = 60  # どの時間足で運用するか(例: 5分足 => 60秒*5 =「300」,1分足 => 60秒 =「60」を入力)
+
+    nowvix = str(int(datetime.datetime.now().timestamp()))
+    resvix = requests.get('https://api.cryptowat.ch/markets/bitflyer/btcfxjpy/ohlc?periods=' + str(PERIOD) + '&after=' + str(int(nowvix)-PERIOD*100) + '&before=' + nowvix)
+    ohlcvvix = resvix.json()
+    ohlcvRvix = list(map(list, zip(*ohlcvvix['result'][str(PERIOD)])))
+    lowvix = np.array(ohlcvRvix[LOW_PRICE])
+    closevix = np.array(ohlcvRvix[CLOSE_PRICE])
+    callback = vixfix(closevix, lowvix)
+
+
+    if callback == 'buy':
+        #Buy
+        vixFlag = 1
+    elif callback == 'sell':
+        #Sell
+        vixFlag = 2
+    else:
+        #Stay
+        vixFlag = 0;
+
+    #VIXflagのログ
+        logger.info('vixflag:%s ', vixFlag);
+
     # フラグリセット
     remaining_ask_flag = 0
     remaining_bid_flag = 0
-    sfdflag = False;
 
     #positionを取得（指値だけだとバグるので修正取得）
     side , size = order.getmypos();
@@ -401,65 +440,124 @@ while True:
         if side == "BUY":
             trade_bid['status'] = 'open';
 
-    if size >= 0.3 and side =="SELL":
-        canSellflag = False;
-        canBuyflag = True;
-    elif size >= 0.3 and side =="BUY":
-        canSellflag = True;
-        canBuyflag = False;
     # 自分の指値が存在しないとき実行する
     if pos == 'none' or pos == 'entry':
 
         try:
+            # 一つ前のspread            
+            previousspread = spread;            
+            # 板情報を取得、実効ask/bid(指値を入れる基準値)を決定する
+            tick = get_effective_tick(size_thru=AMOUNT_THRU, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
+            ask = float(tick['ask'])
+            bid = float(tick['bid'])
+            # 実効スプレッドを計算する
+            spread = (ask - bid) / bid
+
+            tick = get_effective_tick(size_thru=AMOUNT_ASKBID, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
+            # askとbidを再計算する
+            ask = float(tick['ask'])
+            bid = float(tick['bid'])
+            
+            ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
+
+            if int((ask + bid)/2) > int(ticker["last"]):
+                trend = "buy"
+            else:
+                trend = "sell"
+
+        except:
+            pass;
+
+        try:
 
             # 実効スプレッドが閾値を超えた場合に実行しない
-            if spread >= SPREAD_ENTRY:
+            if spread > SPREAD_ENTRY:
 
                 # 前回のサイクルにて未約定量が存在すれば今回の注文数に加える
                 amount_int_ask = LOT + remaining_bid
                 amount_int_bid = LOT + remaining_ask
+                
+                tick = get_effective_tick(size_thru=AMOUNT_ASKBID, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
+                # askとbidを再計算する
+                ask = float(tick['ask'])
+                bid = float(tick['bid'])
+                
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
+                lastprice9 = int(ticker["last"])
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
+                lastprice8 = int(ticker["last"])                
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
+                lastprice7 = int(ticker["last"])                    
+                
+                
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
+                lastprice6 = int(ticker["last"])
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
+                lastprice5 = int(ticker["last"])                
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
+                lastprice4 = int(ticker["last"])                
+                
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
+                lastprice3 = int(ticker["last"])
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
+                lastprice2 = int(ticker["last"])                
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
+                lastprice1 = int(ticker["last"])
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
+                lastprice0 = int(ticker["last"])                
+                
+                lastprice = int((lastprice9 + lastprice8 + lastprice7 + lastprice6 + lastprice5 + lastprice4 + lastprice3 + lastprice2 + lastprice1 + lastprice0)/10)
+                
+                bidaskmiddleprice = int(((ticker["bid"]) + (ticker["ask"]))/2)
 
-                #SFD時の計算
-                if sfdflag == True:
+                lastminusbid = int(bid) - int(ticker["last"]);
+                askminuslast = int(ticker["last"]) - int(ask);
+                logger.info('Last - Bid:%s ', lastminusbid);
+                logger.info('Ask - Last:%s ', askminuslast);
+
+                
+                #実効Ask/Bidからdelta離れた位置に指値を入れる
+                if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and size < 0.3:
+                    #trade_ask = limit('sell', amount_int_ask, ask - DELTA + int((spread * 10000) / 100) * ABSOFFSET)
+                    #trade_bid = limit('buy', amount_int_bid, bid  + DELTA + int((spread * 10000) / 100) * ABSOFFSET)
+                    #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
+                    #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
+                    #trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
+                    trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
+                    time.sleep(0.2)
                     
-                    try:
-                        if diff >= 5.00001 and canSellflag == True:
-                            trade_ask = limit('sell', amount_int_bid, (tickerbtcfx["ask"]))
-                        elif diff <= 4.99 and canBuyflag == True:
-                            trade_bid = limit('buy', amount_int_bid, (tickerbtcfx["bid"]))
-                        logger.info("--------------")
-                        logger.info("SPOT: " + str(spot) + "/FX: " + str(fx) + "/DIFF: " + str(diff)+ '%')
-                        logger.info("--------------")
-                        time.sleep(0.22)
-                        # 注文をキャンセル
-                        order.cancelAllOrder();
-
-                    except:
-                        pass
                     
-                    #tickerを再計算
-                    tickerbtcfx = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
-                    tickerbtc = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "BTC_JPY" })
+                elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and vixFlag == 0 and size < 0.3:
+                    #trade_ask = limit('sell', amount_int_ask, ask - DELTA - int((spread * 10000) / 100) * ABSOFFSET)
+                    #trade_bid = limit('buy', amount_int_bid, bid  + DELTA - int((spread * 10000) / 100) * ABSOFFSET)
+                    #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
+                    #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
+                    trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
+                    #trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
+                    time.sleep(0.2)
 
-                    spot = tickerbtc["last"]
-                    fx =   tickerbtcfx["last"]
-                    diff = round((fx-spot)/spot * 100,6);
+                #実効Ask/Bidからdelta離れた位置に指値を入れる
+                if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and spread > SPREAD_CLEAN:
+                    #trade_ask = limit('sell', amount_int_ask, ask - DELTA + int((spread * 10000) / 100) * ABSOFFSET)
+                    #trade_bid = limit('buy', amount_int_bid, bid  + DELTA + int((spread * 10000) / 100) * ABSOFFSET)
+                    #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
+                    #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
+                    #trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
+                    trade_bid = limit('buy', size, (ticker["bid"]))                    
+                    time.sleep(0.2)
                     
-                    try:
-                        if diff >= 5.0001 and canSellflag == True and side == "BUY":
-                            trade_ask = limit('sell', size, (tickerbtcfx["ask"]))
-                        elif diff <= 4.98 and canBuyflag == True and side == "SELL":
-                            trade_bid = limit('buy', size, (tickerbtcfx["bid"]))
-                        logger.info("--------------")
-                        logger.info("SPOT: " + str(spot) + "/FX: " + str(fx) + "/DIFF: " + str(diff)+ '%')
-                        logger.info("--------------")
-                        time.sleep(0.2)
-                        # 注文をキャンセル
-                        order.cancelAllOrder();
+                    
+                elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and vixFlag == 0 and spread > SPREAD_CLEAN:
+                    #trade_ask = limit('sell', amount_int_ask, ask - DELTA - int((spread * 10000) / 100) * ABSOFFSET)
+                    #trade_bid = limit('buy', amount_int_bid, bid  + DELTA - int((spread * 10000) / 100) * ABSOFFSET)
+                    #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
+                    #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
+                    trade_ask = limit('sell', size, (ticker["ask"]))
+                    #trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
+                    time.sleep(0.2)
 
-                    except:
-                        pass                    
-
+                
+                    
                 logger.info('--------------------------')
                 logger.info('ask:{0}, bid:{1}, spread:{2}%'.format(int(ask * 100) / 100, int(bid * 100) / 100, int(spread * 10000) / 100))                       
 
@@ -482,7 +580,7 @@ while True:
             pass;
 
     # 自分の指値が存在するとき実行する
-    if pos == 'entry' and False:
+    if pos == 'entry':
 
         try:
                 orders = bitflyer.fetch_orders(
@@ -620,7 +718,7 @@ while True:
                 ask = float(tick['ask'])
                 bid = float(tick['bid'])
 
-                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : "FX_BTC_JPY" })
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRPRODUCT })
 
                 if int((ask + bid)/2) > int(ticker["last"]):
                     trend = "buy"
@@ -650,4 +748,7 @@ while True:
                 logger.info('completed.')
         except:
             pass;
+
+    time.sleep(5)
+
 
