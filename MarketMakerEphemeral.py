@@ -78,6 +78,8 @@ callback = 'stay';
 
 signedsize = 0;
 
+minLOT = 0.01
+
 
 #------------------------------------------------------------------------------#
 #log設定
@@ -161,7 +163,7 @@ def market(side, size):
             logger.info(e)
             time.sleep(2)
             #場当たり的な対処
-            size = LOT;
+            size = minLOT;
 
     time.sleep(0.5)
     return value
@@ -177,7 +179,7 @@ def limit(side, size, price):
             logger.info(e)
             time.sleep(2)
             #場当たり的な対処
-            size = LOT;
+            size = minLOT;
 
     time.sleep(0.5)
     return value
