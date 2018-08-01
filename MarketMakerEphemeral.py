@@ -51,8 +51,8 @@ CANDLETERM = config["candleTerm"];
 AMOUNT_MIN = 0.001
 
 # スプレッド閾値
-SPREAD_ENTRY = 0.0001  # 実効スプレッド(100%=1,1%=0.01)がこの値を上回ったらエントリー
-SPREAD_CANCEL = 0.0001 # 実効スプレッド(100%=1,1%=0.01)がこの値を下回ったら指値更新を停止
+SPREAD_ENTRY = 0.0000  # 実効スプレッド(100%=1,1%=0.01)がこの値を上回ったらエントリー
+SPREAD_CANCEL = 0.0000 # 実効スプレッド(100%=1,1%=0.01)がこの値を下回ったら指値更新を停止
 
 # 数量X(この数量よりも下に指値をおく)
 AMOUNT_THRU = 1
@@ -449,9 +449,9 @@ while True:
             ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
 
             if int((ask + bid)/2) > int(ticker["last"]):
-                trend = "buy"
-            else:
                 trend = "sell"
+            else:
+                trend = "buy"
 
         except:
             pass;
