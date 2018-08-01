@@ -490,12 +490,14 @@ while True:
                     time.sleep(0.2)
                     order.cancelAllOrder();
 
-                elif rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 and side == "SELL":
+                elif side == "SELL":
+                    if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
                     trade_bid = limit('buy', size, (ticker["bid"]))
                     time.sleep(1)
                     order.cancelAllOrder();
 
-                elif rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 and side == "BUY":
+                elif side == "BUY":
+                    rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
                     trade_ask = limit('sell', size, (ticker["ask"]))
                     time.sleep(1)
                     order.cancelAllOrder();
