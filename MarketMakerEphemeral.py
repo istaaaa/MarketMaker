@@ -492,15 +492,15 @@ while True:
 
                 elif side == "SELL":
                     if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
-                    trade_bid = limit('buy', size, (ticker["bid"]))
-                    time.sleep(1)
-                    order.cancelAllOrder();
+                        trade_bid = limit('buy', size, (ticker["bid"]))
+                        time.sleep(1)
+                        order.cancelAllOrder();
 
                 elif side == "BUY":
-                    rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
-                    trade_ask = limit('sell', size, (ticker["ask"]))
-                    time.sleep(1)
-                    order.cancelAllOrder();
+                    if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
+                        trade_ask = limit('sell', size, (ticker["ask"]))
+                        time.sleep(1)
+                        order.cancelAllOrder();
 
                 logger.info('--------------------------')
                 logger.info('ask:{0}, bid:{1}, spread:{2}%'.format(int(ask * 100) / 100, int(bid * 100) / 100, int(spread * 10000) / 100))                       
