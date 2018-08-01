@@ -417,6 +417,11 @@ while True:
     #positionを取得（指値だけだとバグるので修正取得）
     side , size = order.getmypos();
 
+    if side == "SELL":
+        signedsize = -size;
+    if side == "BUY":
+        signedsize = size;
+
     if size == 0 and side =="":
         pos = 'none';
         trade_ask['status'] = 'closed';
@@ -471,22 +476,22 @@ while True:
                 bid = float(tick['bid'])
 
                 #実効Ask/Bidからdelta離れた位置に指値を入れる
-                if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and size < 0.3:
+                if rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and signedsize < 0.3:
                     trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
                     time.sleep(0.2)
                     order.cancelAllOrder();
                     
-                elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and vixFlag == 0 and size < 0.3:
+                elif rcirangetermNine[-1] > -85 and trend == "sell" and vixFlag == 0 and signedsize > -0.3:
                     trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
                     time.sleep(0.2)
                     order.cancelAllOrder();
 
-                elif rcirangetermNine[-1] < -85 and side == "SELL":
+                elif rcirangetermNine[-1] < -85 or cirangetermNine[-1] > 85 and side == "SELL":
                     trade_bid = limit('buy', size, (ticker["bid"]))
                     time.sleep(1)
                     order.cancelAllOrder();
 
-                elif rcirangetermNine[-1] > 85 and side == "BUY":
+                elif rcirangetermNine[-1] < -85 or cirangetermNine[-1] > 85 and side == "BUY":
                     trade_ask = limit('sell', size, (ticker["ask"]))
                     time.sleep(1)
                     order.cancelAllOrder();

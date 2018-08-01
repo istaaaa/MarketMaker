@@ -37,7 +37,7 @@ bitflyer = ccxt.bitflyer({
 
 # 取引する通貨、シンボルを設定
 COIN = 'BTC'
-PAIR = 'BTC/JPY'
+PAIR = 'BTCJPY28SEP2018'
 
 # プロダクトコードの指定 
 PRODUCT = config["product_code"]
@@ -51,9 +51,9 @@ CANDLETERM = config["candleTerm"];
 AMOUNT_MIN = 0.001
 
 # スプレッド閾値
-SPREAD_ENTRY = 0.0003  # 実効スプレッド(100%=1,1%=0.01)がこの値を上回ったらエントリー
+SPREAD_ENTRY = 0.0001  # 実効スプレッド(100%=1,1%=0.01)がこの値を上回ったらエントリー
 SPREAD_CANCEL = 0.0001 # 実効スプレッド(100%=1,1%=0.01)がこの値を下回ったら指値更新を停止
-SPREAD_CLEAN = 0.0005
+SPREAD_CLEAN = 0.0002
 
 # 数量X(この数量よりも下に指値をおく)
 AMOUNT_THRU = 1
@@ -429,6 +429,8 @@ while True:
     #positionを取得（指値だけだとバグるので修正取得）
     side , size = order.getmypos();
 
+
+
     if size == 0 and side =="":
         pos = 'none';
         trade_ask['status'] = 'closed';
@@ -525,6 +527,7 @@ while True:
                     #trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
                     trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
                     time.sleep(0.2)
+                    order.cancelAllOrderFutures();
                     
                     
                 elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and vixFlag == 0 and size < 0.3:
@@ -535,9 +538,10 @@ while True:
                     trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
                     #trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
                     time.sleep(0.2)
+                    order.cancelAllOrderFutures();
 
                 #実効Ask/Bidからdelta離れた位置に指値を入れる
-                if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and spread > SPREAD_CLEAN:
+                if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy"  and side == "SELL" and vixFlag == 0 and spread > SPREAD_CLEAN:
                     #trade_ask = limit('sell', amount_int_ask, ask - DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA + int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
@@ -545,9 +549,10 @@ while True:
                     #trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
                     trade_bid = limit('buy', size, (ticker["bid"]))                    
                     time.sleep(0.2)
+                    order.cancelAllOrderFutures();
                     
                     
-                elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and vixFlag == 0 and spread > SPREAD_CLEAN:
+                elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and side == "BUY" and vixFlag == 0 and spread > SPREAD_CLEAN:
                     #trade_ask = limit('sell', amount_int_ask, ask - DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_bid = limit('buy', amount_int_bid, bid  + DELTA - int((spread * 10000) / 100) * ABSOFFSET)
                     #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
@@ -555,6 +560,7 @@ while True:
                     trade_ask = limit('sell', size, (ticker["ask"]))
                     #trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
                     time.sleep(0.2)
+                    order.cancelAllOrderFutures();
 
                 
                     
@@ -580,7 +586,7 @@ while True:
             pass;
 
     # 自分の指値が存在するとき実行する
-    if pos == 'entry':
+    if pos == 'entry' and False:
 
         try:
                 orders = bitflyer.fetch_orders(
@@ -718,7 +724,7 @@ while True:
                 ask = float(tick['ask'])
                 bid = float(tick['bid'])
 
-                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRPRODUCT })
+                ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
 
                 if int((ask + bid)/2) > int(ticker["last"]):
                     trend = "buy"
@@ -728,11 +734,11 @@ while True:
                 #positionを取得（指値だけだとバグるので修正取得）
                 side , size = order.getmypos();
 
-                if side == "SELL" and trend == 'buy' and trade_bid['status'] == "closed":
+                if side == "SELL" and trend == 'buy' and trade_bid['status'] == "closed" and False:
                         amount_int_bid = LOT + remaining_ask
                         trade_bid = limit('buy', size, bid + DELTA + int((spread * 10000) / 100) * OFFSET)
                         trade_bid['status'] = 'open'
-                if side == "BUY" and trend == 'sell' and trade_ask['status'] == "closed":
+                if side == "BUY" and trend == 'sell' and trade_ask['status'] == "closed" and False:
                         amount_int_ask = LOT + remaining_bid
                         trade_ask = limit('sell', size, ask - DELTA - int((spread * 10000) / 100) * OFFSET)
                         trade_ask['status'] = 'open'
@@ -748,7 +754,5 @@ while True:
                 logger.info('completed.')
         except:
             pass;
-
-    time.sleep(5)
 
 

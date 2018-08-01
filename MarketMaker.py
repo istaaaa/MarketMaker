@@ -383,8 +383,8 @@ while True:
     #Normdmacdhist = zscore(dmacdhist[~np.isnan(dmacdhist)])
     #absNormdmacdhist = np.abs(Normdmacdhist);
 
-    #9期間RCIの計算 
-    rcirangetermNine = calc_rci(df_candleStick["close"][:],4);
+    #3期間RCIの計算 
+    rcirangetermNine = calc_rci(df_candleStick["close"][:],3);
     logger.info('rcirangetermNine:%s ', rcirangetermNine[-1]);
 
     # 未約定量の繰越がなければリセット
@@ -392,7 +392,6 @@ while True:
         remaining_ask = 0
     if remaining_bid_flag == 0:
         remaining_bid = 0
-
 
     #VIX戦略
     LOW_PRICE = 3
@@ -469,7 +468,7 @@ while True:
 
         try:
 
-            # 実効スプレッドが閾値を超えた場合に実行しない
+            # 実効スプレッドが閾値を超えた場合に実行する
             if spread > SPREAD_ENTRY:
 
                 # 前回のサイクルにて未約定量が存在すれば今回の注文数に加える
@@ -517,26 +516,25 @@ while True:
                 
                 #実効Ask/Bidからdelta離れた位置に指値を入れる
                 if rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and size < 0.3:
-                    #trade_ask = limit('sell', amount_int_ask, ask - DELTA + int((spread * 10000) / 100) * ABSOFFSET)
-                    #trade_bid = limit('buy', amount_int_bid, bid  + DELTA + int((spread * 10000) / 100) * ABSOFFSET)
-                    #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
-                    #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
-                    #trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
                     trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
-                    time.sleep(5)
-                    
+                    time.sleep(0.2)
+                    order.cancelAllOrderFutures();
                     
                 elif rcirangetermNine[-1] > -85 and rcirangetermNine[-1] < 85 and trend == "sell" and vixFlag == 0 and size < 0.3:
-                    #trade_ask = limit('sell', amount_int_ask, ask - DELTA - int((spread * 10000) / 100) * ABSOFFSET)
-                    #trade_bid = limit('buy', amount_int_bid, bid  + DELTA - int((spread * 10000) / 100) * ABSOFFSET)
-                    #trade_ask = limit('sell', amount_int_ask, int((ask + bid)/2) + PERTURB)
-                    #trade_bid = limit('buy', amount_int_bid, int((ask + bid)/2) - PERTURB)
                     trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
-                    #trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
-                    time.sleep(5)
+                    time.sleep(0.2)
+                    order.cancelAllOrderFutures();
 
-                
-                    
+                elif rcirangetermNine[-1] < -85 and side == "SELL":
+                    trade_bid = limit('buy', size, (ticker["bid"]))
+                    time.sleep(1)
+                    order.cancelAllOrderFutures();
+
+                elif rcirangetermNine[-1] > 85 and side == "BUY":
+                    trade_ask = limit('sell', size, (ticker["ask"]))
+                    time.sleep(1)
+                    order.cancelAllOrderFutures();
+
                 logger.info('--------------------------')
                 logger.info('ask:{0}, bid:{1}, spread:{2}%'.format(int(ask * 100) / 100, int(bid * 100) / 100, int(spread * 10000) / 100))                       
 
@@ -555,7 +553,7 @@ while True:
                 logger.info('--------------------------')
                 logger.info('entry')
 
-                time.sleep(5)
+                time.sleep(1)
         except:
             pass;
 
@@ -729,6 +727,5 @@ while True:
         except:
             pass;
 
-    time.sleep(5)
 
 
