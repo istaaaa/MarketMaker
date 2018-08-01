@@ -348,7 +348,7 @@ class BFOrder:
         index =0
         while(index < 50):
             try:
-                poss = self.api.getpositions(product_code = "FX_BTC_JPY")
+                poss = self.api.getpositions(product_code = self.product_code)
 
                 #もしポジションがあれば合計値を取得
                 if len(poss) != 0:
@@ -361,6 +361,8 @@ class BFOrder:
             time.sleep(0.5)
             index += 1
         return side,size
+
+
 
     def getmyparentorder(self):
         side = ""
@@ -388,6 +390,17 @@ class BFOrder:
         while(index < 50):
             try:
                 self.api.cancelallchildorders(product_code = "FX_BTC_JPY")
+                break;
+            except:
+                pass
+            index += 1
+
+    #すべての注文をキャンセル
+    def cancelAllOrderFutures(self):
+        index =0
+        while(index < 50):
+            try:
+                self.api.cancelallchildorders(product_code = "BTCJPY28SEP2018")
                 break;
             except:
                 pass
