@@ -410,7 +410,7 @@ while True:
         df_candleStick = processCandleStick(candleStick,CANDLETERM)
 
     #3期間RCIの計算 
-    rcirangetermNine = calc_rci(df_candleStick["close"][:],3);
+    rcirangetermNine = calc_rci(df_candleStick["close"][:],9);
     logger.info('rcirangetermNine:%s ', rcirangetermNine[-1]);
 
     # 未約定量の繰越がなければリセット
@@ -541,13 +541,13 @@ while True:
                         order.cancelAllOrder();
 
                 elif side == "SELL":
-                    if trend == "buy":
+                    if trend == "buy" or "stay":
                         trade_bid = market('buy', size)
                         time.sleep(1)
                         order.cancelAllOrder();                        
 
                 elif side == "BUY":
-                    if trend == "sell":
+                    if trend == "sell" or "stay":
                         trade_ask = market('sell', size)                        
                         time.sleep(1)
                         order.cancelAllOrder();
