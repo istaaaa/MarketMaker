@@ -57,7 +57,7 @@ SPREAD_CANCEL = 0.0000 # 実効スプレッド(100%=1,1%=0.01)がこの値を下
 # 数量X(この数量よりも下に指値をおく)
 AMOUNT_THRU = 3
 AMOUNT_ASKBID = 0.5
-AMOUNT_EVIL_ASKBID = 10
+AMOUNT_EVIL_ASKBID = 9
 
 # 実効Ask/BidからDELTA離れた位置に指値をおく
 DELTA = 30
