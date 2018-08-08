@@ -57,7 +57,7 @@ SPREAD_CANCEL = 0.0000 # 実効スプレッド(100%=1,1%=0.01)がこの値を下
 # 数量X(この数量よりも下に指値をおく)
 AMOUNT_THRU = 3
 AMOUNT_ASKBID = 0.5
-AMOUNT_EVIL_ASKBID = 5
+AMOUNT_EVIL_ASKBID = 10
 
 # 実効Ask/BidからDELTA離れた位置に指値をおく
 DELTA = 30
@@ -491,8 +491,12 @@ while True:
 
             if int((ask - 1000)) < int(ticker["last"]):
                 trend = "buy"
+                if int((bid + 1000)) > int(ticker["last"]):
+                    trend = "stay"
             elif int((bid + 1000)) > int(ticker["last"]):
                 trend = "sell"
+                if int((ask - 1000)) < int(ticker["last"]):
+                    trend = "stay"
             else:
                 trend = "stay"
 
@@ -526,15 +530,14 @@ while True:
 
                 elif side == "SELL":
                     if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
-                        trade_bid = limit('buy', size, (ticker["bid"]))
+                        trade_bid = market('buy', size)
                         time.sleep(1)
                         order.cancelAllOrder();
                         
                 elif side == "BUY":
                     if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
-                        trade_ask = limit('sell', size, (ticker["ask"]))
-                        trade_bid = limit('buy', size, (ticker["bid"]))
-                        time.sleep(10)
+                        trade_ask = market('sell', size)
+                        time.sleep(1)
                         order.cancelAllOrder();
 
                 elif side == "SELL":
