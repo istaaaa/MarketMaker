@@ -538,17 +538,15 @@ while True:
                         order.cancelAllOrder();
 
                 elif side == "SELL":
-                        tick = get_threshold_tick(size_thru=AMOUNT_EVIL_ASKBID, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
-                        trade_ask = limit('sell', size, (ticker["ask"]))
-                        trade_bid = limit('buy', size, (ticker["bid"]))
-                        time.sleep(10)
+                    if trend == "buy":
+                        trade_bid = market('buy', size)
+                        time.sleep(1)
                         order.cancelAllOrder();                        
 
                 elif side == "BUY":
-                        tick = get_threshold_tick(size_thru=AMOUNT_EVIL_ASKBID, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
-                        trade_ask = limit('sell', size, (ticker["ask"]))
-                        trade_bid = limit('buy', size, (ticker["bid"]))
-                        time.sleep(10)
+                    if trend == "sell":
+                        trade_ask = market('sell', size)                        
+                        time.sleep(1)
                         order.cancelAllOrder();
                         
                 logger.info('--------------------------')

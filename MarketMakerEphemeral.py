@@ -502,6 +502,19 @@ while True:
                         time.sleep(1)
                         order.cancelAllOrder();
 
+                elif side == "SELL":
+                    if trend == "buy":
+                        trade_bid = market('buy', size)
+
+                        time.sleep(1)
+                        order.cancelAllOrder();                        
+
+                elif side == "BUY":
+                    if trend == "sell":
+                        trade_ask = market('sell', size)                        
+                        time.sleep(1)
+                        order.cancelAllOrder();
+                        
                 logger.info('--------------------------')
                 logger.info('ask:{0}, bid:{1}, spread:{2}%'.format(int(ask * 100) / 100, int(bid * 100) / 100, int(spread * 10000) / 100))                       
 
