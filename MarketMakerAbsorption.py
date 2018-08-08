@@ -528,21 +528,22 @@ while True:
                 elif side == "BUY":
                     if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
                         trade_ask = limit('sell', size, (ticker["ask"]))
-                        time.sleep(1)
-                        order.cancelAllOrder();  
-                elif side == "SELL":
-                    if trend == "buy":
-                        #trade_bid = limit('buy', size, (ticker["bid"]))
-                        trade_bid = market('buy', size)
+                        trade_bid = limit('buy', size, (ticker["bid"]))
+                        time.sleep(10)
+                        order.cancelAllOrder();
 
-                        time.sleep(1)
+                elif side == "SELL":
+                        tick = get_threshold_tick(size_thru=AMOUNT_EVIL_ASKBID, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
+                        trade_ask = limit('sell', size, (ticker["ask"]))
+                        trade_bid = limit('buy', size, (ticker["bid"]))
+                        time.sleep(10)
                         order.cancelAllOrder();                        
 
                 elif side == "BUY":
-                    if trend == "sell":
+                        tick = get_threshold_tick(size_thru=AMOUNT_EVIL_ASKBID, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
                         trade_ask = limit('sell', size, (ticker["ask"]))
-                        trade_ask = market('sell', size)                        
-                        time.sleep(1)
+                        trade_bid = limit('buy', size, (ticker["bid"]))
+                        time.sleep(10)
                         order.cancelAllOrder();
                         
                 logger.info('--------------------------')
