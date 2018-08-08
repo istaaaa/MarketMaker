@@ -488,7 +488,7 @@ while True:
                 trend = "buy"
             elif int((bid + 1000)) > int(ticker["last"]):
                 trend = "sell"
-            else
+            else:
                 trend = "stay"
 
         except:

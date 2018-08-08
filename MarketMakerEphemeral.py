@@ -55,7 +55,7 @@ SPREAD_ENTRY = 0.0000  # 実効スプレッド(100%=1,1%=0.01)がこの値を上
 SPREAD_CANCEL = 0.0000 # 実効スプレッド(100%=1,1%=0.01)がこの値を下回ったら指値更新を停止
 
 # 数量X(この数量よりも下に指値をおく)
-AMOUNT_THRU = 3
+AMOUNT_THRU = 1
 AMOUNT_ASKBID = 0.5
 
 # 実効Ask/BidからDELTA離れた位置に指値をおく
@@ -148,32 +148,6 @@ def get_effective_tick(size_thru, rate_ask, size_ask, rate_bid, size_bid):
         else:
             t += value['asks'][j][1]
         j += 1
-
-    time.sleep(0.5)
-    return {'bid': value['bids'][i-1][0], 'ask': value['asks'][j-1][0]}
-
-# 板情報から実効Ask/Bid(=指値を入れる基準値)を計算する関数
-def get_threshold_tick(size_thru, rate_ask, size_ask, rate_bid, size_bid):
-
-    while True:
-        try:
-            value = bitflyer.fetchOrderBook(PAIR,params = { "product_code" : PRODUCT })
-            break
-        except Exception as e:
-            logger.info(e)
-            time.sleep(2)
-
-    i = 0
-    s = 0
-    while s <= size_thru:
-        if value['bids'][i][0] == rate_bid:
-            i += 1
-
-    j = 0
-    t = 0
-    while t <= size_thru:
-        if value['asks'][j][0] == rate_ask:
-            j += 1
 
     time.sleep(0.5)
     return {'bid': value['bids'][i-1][0], 'ask': value['asks'][j-1][0]}
@@ -506,42 +480,28 @@ while True:
                 bid = float(tick['bid'])
 
                 #実効Ask/Bidからdelta離れた位置に指値を入れる
-                if rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and signedsize < 0.3:
+                if rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and size < 0.3:
                     trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
-                    time.sleep(1)
+                    time.sleep(0.2)
                     order.cancelAllOrder();
                     
-                elif rcirangetermNine[-1] > -85 and trend == "sell" and vixFlag == 0 and signedsize > -0.3:
+                elif rcirangetermNine[-1] > -85 and trend == "sell" and vixFlag == 0 and size < 0.3:
                     trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
-                    time.sleep(1)
+                    time.sleep(0.2)
                     order.cancelAllOrder();
 
                 elif side == "SELL":
                     if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
-                        trade_bid = limit('buy', size, (ticker["bid"]))
+                        trade_bid = market('buy', size)
                         time.sleep(1)
                         order.cancelAllOrder();
-                        
+
                 elif side == "BUY":
                     if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
-                        trade_ask = limit('sell', size, (ticker["ask"]))
-                        time.sleep(1)
-                        order.cancelAllOrder();  
-                elif side == "SELL":
-                    if trend == "buy":
-                        #trade_bid = limit('buy', size, (ticker["bid"]))
-                        trade_bid = market('buy', size)
-
-                        time.sleep(1)
-                        order.cancelAllOrder();                        
-
-                elif side == "BUY":
-                    if trend == "sell":
-                        trade_ask = limit('sell', size, (ticker["ask"]))
-                        trade_ask = market('sell', size)                        
+                        trade_ask = market('sell', size)
                         time.sleep(1)
                         order.cancelAllOrder();
-                        
+
                 logger.info('--------------------------')
                 logger.info('ask:{0}, bid:{1}, spread:{2}%'.format(int(ask * 100) / 100, int(bid * 100) / 100, int(spread * 10000) / 100))                       
 
