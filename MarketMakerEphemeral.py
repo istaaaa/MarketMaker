@@ -480,25 +480,25 @@ while True:
                 bid = float(tick['bid'])
 
                 #実効Ask/Bidからdelta離れた位置に指値を入れる
-                if rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and signedsize < 0.3:
+                if rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and size < 0.3:
                     trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
                     time.sleep(0.2)
                     order.cancelAllOrder();
                     
-                elif rcirangetermNine[-1] > -85 and trend == "sell" and vixFlag == 0 and signedsize > -0.3:
+                elif rcirangetermNine[-1] > -85 and trend == "sell" and vixFlag == 0 and size < 0.3:
                     trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
                     time.sleep(0.2)
                     order.cancelAllOrder();
 
                 elif side == "SELL":
                     if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
-                        trade_bid = limit('buy', size, (ticker["bid"]))
+                        trade_bid = market('buy', size)
                         time.sleep(1)
                         order.cancelAllOrder();
 
                 elif side == "BUY":
                     if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
-                        trade_ask = limit('sell', size, (ticker["ask"]))
+                        trade_ask = market('sell', size)
                         time.sleep(1)
                         order.cancelAllOrder();
 
