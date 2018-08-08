@@ -57,6 +57,7 @@ SPREAD_CANCEL = 0.0000 # 実効スプレッド(100%=1,1%=0.01)がこの値を下
 # 数量X(この数量よりも下に指値をおく)
 AMOUNT_THRU = 3
 AMOUNT_ASKBID = 0.5
+AMOUNT_EVIL_ASKBID = 5
 
 # 実効Ask/BidからDELTA離れた位置に指値をおく
 DELTA = 30
@@ -476,17 +477,19 @@ while True:
             # 実効スプレッドを計算する
             spread = (ask - bid) / bid
 
-            tick = get_effective_tick(size_thru=AMOUNT_ASKBID, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
+            tick = get_threshold_tick(size_thru=AMOUNT_EVIL_ASKBID, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
             # askとbidを再計算する
             ask = float(tick['ask'])
             bid = float(tick['bid'])
             
             ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
 
-            if int((ask + bid)/2) > int(ticker["last"]):
-                trend = "sell"
-            else:
+            if int((ask - 1000)) < int(ticker["last"]):
                 trend = "buy"
+            elif int((bid + 1000)) > int(ticker["last"]):
+                trend = "sell"
+            else
+                trend = "stay"
 
         except:
             pass;
