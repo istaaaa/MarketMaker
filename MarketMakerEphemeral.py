@@ -357,7 +357,6 @@ trade_bid = {"status":'closed'}
 # メインループ
 while True:
 
-
     try:
         if "H" in CANDLETERM:
             candleStick = cryptowatch.getCandlestick(480, "3600")
