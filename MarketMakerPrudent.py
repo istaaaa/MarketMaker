@@ -57,6 +57,7 @@ SPREAD_CANCEL = 0.0000 # 実効スプレッド(100%=1,1%=0.01)がこの値を下
 # 数量X(この数量よりも下に指値をおく)
 AMOUNT_THRU = 1
 AMOUNT_ASKBID = 0.5
+AMOUNT_EVIL_ASKBID = 11
 
 # 実効Ask/BidからDELTA離れた位置に指値をおく
 DELTA = 30
@@ -489,9 +490,9 @@ while True:
             ticker = bitflyer.fetch_ticker('BTC/JPY', params = { "product_code" : PRODUCT })
 
             if int((ask + bid)/2) > int(ticker["last"]):
-                trend = "sell"
+                trendeph = "sell"
             else:
-                trend = "buy"
+                trendeph = "buy"
 
 
             tick = get_threshold_tick(size_thru=AMOUNT_EVIL_ASKBID, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
@@ -511,6 +512,13 @@ while True:
                     trendthres = "stay"
             else:
                 trendthres = "stay"
+
+            if trendeph == "sell" and trendthres == "sell":
+                trend = "sell"
+            elif trendeph == "buy" and trendthres == "buy":
+                trend = "buy"
+            else:
+                trend = "stay"
 
         except:
             pass;
@@ -540,29 +548,28 @@ while True:
                     time.sleep(0.2)
                     order.cancelAllOrder();
 
-                elif side == "SELL":
-                    if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
-                        trade_bid = market('buy', size)
-                        time.sleep(1)
-                        order.cancelAllOrder();
+                #elif side == "SELL":
+                #    if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
+                #        trade_bid = market('buy', size)
+                #        time.sleep(1)
+                #        order.cancelAllOrder();
 
-                elif side == "BUY":
-                    if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
-                        trade_ask = market('sell', size)
-                        time.sleep(1)
-                        order.cancelAllOrder();
+                #elif side == "BUY":
+                #    if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
+                #        trade_ask = market('sell', size)
+                #        time.sleep(3)
+                #        order.cancelAllOrder();
 
                 elif side == "SELL":
                     if trend == "buy":
                         trade_bid = market('buy', size)
-
-                        time.sleep(1)
+                        time.sleep(3)
                         order.cancelAllOrder();                        
 
                 elif side == "BUY":
-                    if trend == "sell":
+                    if trend == "buy":
                         trade_ask = market('sell', size)                        
-                        time.sleep(1)
+                        time.sleep(3)
                         order.cancelAllOrder();
                         
                 logger.info('--------------------------')
@@ -572,6 +579,7 @@ while True:
                 logger.info('Offset:%s ', int((spread * 10000) / 100) * OFFSET);
                 logger.info('ABSOffset:%s ', int((spread * 10000) / 100) * ABSOFFSET);
                 logger.info('trend:%s ', trend);
+                logger.info('trendeph:%s ', trendeph);
                 logger.info('trendthres:%s ', trendthres);
 
                 logger.info('--------------------------')
