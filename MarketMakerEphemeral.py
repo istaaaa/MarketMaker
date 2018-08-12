@@ -51,8 +51,10 @@ CANDLETERM = config["candleTerm"];
 AMOUNT_MIN = 0.001
 
 # スプレッド閾値
-SPREAD_ENTRY = 0.0000  # 実効スプレッド(100%=1,1%=0.01)がこの値を上回ったらエントリー
+SPREAD_ENTRY = 0.0001  # 実効スプレッド(100%=1,1%=0.01)がこの値を上回ったらエントリー
 SPREAD_CANCEL = 0.0000 # 実効スプレッド(100%=1,1%=0.01)がこの値を下回ったら指値更新を停止
+SPREAD_CLOSE = 0.0000  # 実効スプレッド(100%=1,1%=0.01)がこの値を上回ったらクローズ
+
 
 # 数量X(この数量よりも下に指値をおく)
 AMOUNT_THRU = 1
@@ -482,15 +484,20 @@ while True:
                 #実効Ask/Bidからdelta離れた位置に指値を入れる
                 if rcirangetermNine[-1] < 85 and trend == "buy" and vixFlag == 0 and size < 0.3:
                     trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
+                    trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
                     time.sleep(0.2)
                     order.cancelAllOrder();
                     
                 elif rcirangetermNine[-1] > -85 and trend == "sell" and vixFlag == 0 and size < 0.3:
+                    trade_bid = limit('buy', amount_int_bid, (ticker["bid"]))                    
                     trade_ask = limit('sell', amount_int_ask, (ticker["ask"]))
                     time.sleep(0.2)
                     order.cancelAllOrder();
 
-                elif side == "SELL":
+            # 実効スプレッドが閾値を超えた場合に実行する
+            if spread > SPREAD_CLOSE:
+
+                if side == "SELL":
                     if rcirangetermNine[-1] < -85 or rcirangetermNine[-1] > 85 :
                         trade_bid = market('buy', size)
                         time.sleep(1)
