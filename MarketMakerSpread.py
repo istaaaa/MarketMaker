@@ -459,13 +459,13 @@ while True:
                 #実効Ask/Bidからdelta離れた位置に指値を入れる
                 if trend == "buy" and size < 0.3:
                     trade_bid = limit('buy', amount_int_bid, (bid)) 
-                    trade_ask = limit('sell', amount_int_ask, (askthru))
-                    time.sleep(5)
+                    time.sleep(0.2)
+                    order.cancelAllOrder();
                     
                 elif trend == "sell" and size < 0.3:
-                    trade_bid = limit('buy', amount_int_bid, (bidthru)) 
                     trade_ask = limit('sell', amount_int_ask, (ask))
-                    time.sleep(5)
+                    time.sleep(0.2)
+                    order.cancelAllOrder();
             # 実効スプレッドが閾値を超えた場合に実行する
             if spread > SPREAD_CLOSE:
 
@@ -481,10 +481,16 @@ while True:
                 ask = float(tick['ask'])
                 bid = float(tick['bid'])
 
-                if side == "SELL":
+                if side == "SELL" and int(pnl) > 3 :
                     trade_bid = limit('buy', round(size,15),(tick["ask"]))
 
-                elif side == "BUY":
+                elif side == "BUY" and int(pnl) > 3 :
+                    trade_ask = limit('sell', round(size,15),(tick["bid"]))
+
+                if side == "SELL" and trend == "buy":
+                    trade_bid = limit('buy', round(size,15),(tick["ask"]))
+
+                elif side == "BUY"and trend == "sell":
                     trade_ask = limit('sell', round(size,15),(tick["bid"]))
                         
             logger.info('--------------------------')

@@ -346,7 +346,7 @@ class BFOrder:
         size = 0
         response = {"status": "internalError in bforder.py"}
         index =0
-        while(index < 50):
+        while(index < 10):
             try:
                 poss = self.api.getpositions(product_code = self.product_code)
 
@@ -358,11 +358,8 @@ class BFOrder:
                 break;
             except:
                 pass
-            time.sleep(0.5)
             index += 1
         return side,size
-
-
 
     def getmyparentorder(self):
         side = ""
