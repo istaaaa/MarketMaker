@@ -446,12 +446,8 @@ while True:
                 # 前回のサイクルにて未約定量が存在すれば今回の注文数に加える
                 amount_int_ask = LOT + remaining_bid
                 amount_int_bid = LOT + remaining_ask
-
-                tick = get_effective_tick(size_thru=AMOUNT_SPREAD, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
-                askthru = float(tick['ask'])
-                bidthru = float(tick['bid'])
                 
-                tick = get_effective_tick(size_thru=AMOUNT_ASKBID, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
+                tick = get_effective_tick(size_thru=AMOUNT_SPREAD, rate_ask=0, size_ask=0, rate_bid=0, size_bid=0)
                 # askとbidを再計算する
                 ask = float(tick['ask'])
                 bid = float(tick['bid'])
@@ -501,6 +497,7 @@ while True:
             logger.info('ABSOffset:%s ', int((spread * 10000) / 100) * ABSOFFSET);
             logger.info('trend:%s ', trend);
             logger.info('signedsize:%s ', signedsize);
+            logger.info('pnl:%s ', int(pnl));
 
             logger.info('--------------------------')
             logger.info('ask:{0}, bid:{1}, spread:{2}%'.format(int(ask * 100) / 100, int(bid * 100) / 100, int(spread * 10000) / 100))
